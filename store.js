@@ -42,7 +42,19 @@ class Store {
   }
 }
 
-const sto = new Store({name: 'alice', num: 5});
+function createStore(updaters, defaultState) {
+  const sto = new Store(defaultState);
+  sto.setUpdates(updaters);
+  return sto;
+}
+
+function createChangeAction (name) {
+  return {
+    type: 'changeName',
+    name
+  }
+}
+
 
 function numUpdater (oldNum, action) {
   let num = {};
@@ -55,6 +67,7 @@ function numUpdater (oldNum, action) {
       return oldNum;
   }
 }
+
 function nameUpdater (oldName, action) {
   if (action.type === 'changeName') {
     return action.name
@@ -63,10 +76,12 @@ function nameUpdater (oldName, action) {
   } 
 }
 
-sto.setUpdates({
+
+
+const sto = createStore({
   name: nameUpdater,
   num: numUpdater
-});
+}, {name: 'alice', num: 5});
 
 sto.listen(() => {
   console.log(sto.state);
@@ -77,10 +92,58 @@ const action = {
 const action2 = {
   type: '-'
 };
-const action3 = {
-  type: 'changeName',
-  name: 'baby'
+
+const action3 = createChangeAction('baby');
+
+// sto.dispatch(action);
+// sto.dispatch(action2);
+
+function logger (store) {
+  let next = store.dispatch;
+  store.dispatch = function (action) {
+    // 加个中间件实现日志功能
+    console.log('Action begin', action.type);
+    next.call(store, action);
+    console.log('Action end', action.type);
+  }  
+
+  return store;
 }
-sto.dispatch(action);
-sto.dispatch(action2);
-sto.dispatch(action3);
+
+ // 异步获得数据
+function ajaxData (store) {
+  let next = store.dispatch;
+  store.dispatch = function (action) {
+    if (action.url) {      
+      setTimeout(function(){
+        action.name = 'baby';
+        next.call(store, action);
+      }, 1000);
+    } else {
+      next.call(store, action);
+    }    
+  }  
+
+  return store;
+}
+
+// ajaxData(function(data) {
+//   sto.dispatch(createChangeAction(data.name));
+// });
+
+// [logger, ajaxData]
+function useMiddleware (store, middles) {
+  middles.reverse();
+  middles.forEach(middle => {
+    middle(store);
+  });
+
+  return store;
+}
+
+useMiddleware(sto, [logger, ajaxData]);
+
+sto.dispatch({
+  type: 'changeName',
+  url: '///'
+})
