@@ -1,5 +1,6 @@
 const Redux = require('redux');
-// reducer是一个纯函数
+// reducer是一个纯函数，返回对象必须瞬态同步返回
+// state参数的代码量可能较大，因此可拆分成多个reducer
 const reducer = function (state, action) {
   if (action.type === 'changeName') {
     console.log('changeName');
@@ -16,6 +17,7 @@ const reducer = function (state, action) {
 const store = Redux.createStore(reducer, { name: 'alice' });
 var subscribe = store.subscribe;
 var { subscribe, dispatch, getState } = store;
+var state = getState(); // 始终是只读的
 store.subscribe(() => console.log(store.getState()));
 /*
 function callAction() {
