@@ -2,9 +2,25 @@
 
 const Redux = require('redux');
 const createStore = Redux.createStore;
-const combineReducers = Redux.combineReducers;
+// const combineReducers = Redux.combineReducers;
 
-// state -> {a:[], b:[]}
+// 用自己实现的combineReducers
+function combineReducers(reducers) {
+  var keys = Object.keys(reducers);
+  return function reducer(state, action){
+    let newState = { // return new state;
+
+    }
+
+    for (let key in reducers) {
+      newState[key] = reducers[key](state[key], action);
+    }
+
+    return newState;
+  }
+}
+
+// state -> {a:[], b:[], c: {name, group: []}}
 
 // action A -> {type, data(String)}
 
@@ -38,9 +54,45 @@ function bReducer(state, action) {
   }
 }
 
-const reducer = combineReducers({ a: aReducer, b: bReducer });
+function cNameReducer(state, action) {
+  if (typeof state === 'undefined') return '';
+  if (action.type === 'c') {
+    return action.name;
+  } else {
+    return state;
+  }
+}
 
-const store = createStore(reducer, { a: [111], b: [222] });
+function cGroupReducer(state, action) {
+  if (typeof state === 'undefined') return [];
+  if (action.type === 'c') {
+    return state.concat(action.item);
+  } else {
+    return state;
+  }
+}
+
+// cAction: {type, name, item}
+
+function cReducer(state, action) {
+  if (typeof state === 'undefined') return {name: '', group: []};
+  switch (action.type) {
+    case 'c':
+      // return {
+      //   name: cNameReducer(undefined, action),
+      //   group: cGroupReducer(undefined, action)
+      // }
+      // 合并成一个reducer再调用
+      return combineReducers({name: cNameReducer, group: cGroupReducer})(state, action);
+    default:
+      return state;
+  }
+}
+
+// 拆分
+const reducer = combineReducers({ a: aReducer, b: bReducer, c: cReducer });
+
+const store = createStore(reducer, { a: [111], b: [222], c: {name: '', group: []}});
 
 store.subscribe(function listener() {
   console.log(store.getState());
@@ -54,6 +106,11 @@ let actionB = {
   type: 'b',
   data: 'baby'
 }
-// store.dispatch(actionA);
-// store.dispatch(actionB);
-combineReducers(actionA, actionB);
+let actionC = {
+  type: 'c',
+  name: 'bright',
+  item: '123'
+}
+store.dispatch(actionA);
+store.dispatch(actionB);
+store.dispatch(actionC);
